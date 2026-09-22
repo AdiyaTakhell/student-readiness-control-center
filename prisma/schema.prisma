@@ -8,3 +8,132 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum UserRole {
+  ADMIN
+  EVALUATOR
+  VIEWER
+}
+
+enum ReadinessStatus {
+  INCOMPLETE
+  READY
+  NEARLY_READY
+  DEVELOPING
+  NEEDS_PREPARATION
+}
+
+model Tenant {
+  id          String             @id @default(uuid()) @db.Uuid
+  name        String             @db.VarChar(160)
+  status      TenantStatus       @default(ACTIVE)
+  users       User[]
+  students    Student[]
+  attempts    Attempt[]
+  idempotency IdempotencyRecord[]
+  createdAt   DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime           @updatedAt @db.Timestamptz(3)
+
+  @@index([status])
+  @@map("tenants")
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  tenantId     String    @db.Uuid
+  email        String    @db.VarChar(320)
+  displayName  String    @db.VarChar(160)
+  role         UserRole  @default(EVALUATOR)
+  passwordHash String    @db.VarChar(255)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  attempts Attempt[]
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([tenantId, email])
+  @@unique([tenantId, id])
+  @@index([tenantId, role])
+  @@map("users")
+}
+
+model Student {
+  id           String          @id @default(uuid()) @db.Uuid
+  tenantId     String          @db.Uuid
+  email        String          @db.VarChar(320)
+  displayName  String          @db.VarChar(160)
+  version      Int             @default(1)
+  currentScore Decimal?        @map("current_score") @db.Decimal(5, 2)
+  readiness    ReadinessStatus @default(INCOMPLETE)
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  attempts Attempt[]
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([tenantId, email])
+  @@unique([tenantId, id])
+  @@index([tenantId, readiness, id])
+  @@index([tenantId, displayName, id])
+  @@map("students")
+}
+
+model Competency {
+  key         String    @id @db.VarChar(64)
+  displayName String    @db.VarChar(120)
+  weight      Decimal   @db.Decimal(5, 4)
+  required    Boolean   @default(true)
+
+  attempts Attempt[]
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@map("competencies")
+}
+
+model Attempt {
+  id            String     @id @default(uuid()) @db.Uuid
+  tenantId      String     @db.Uuid
+  studentId     String     @db.Uuid
+  competencyKey String     @db.VarChar(64)
+  evaluatorId   String     @db.Uuid
+  score         Decimal    @db.Decimal(5, 2)
+  submittedAt   DateTime   @default(now()) @db.Timestamptz(3)
+  voided        Boolean    @default(false)
+  voidedAt      DateTime?  @db.Timestamptz(3)
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  student    Student    @relation(fields: [tenantId, studentId], references: [tenantId, id], onDelete: Restrict)
+  competency Competency @relation(fields: [competencyKey], references: [key], onDelete: Restrict)
+  evaluator  User       @relation(fields: [tenantId, evaluatorId], references: [tenantId, id], onDelete: Restrict)
+
+  @@index([tenantId, studentId, competencyKey, submittedAt, id])
+  @@index([tenantId, studentId, submittedAt, id])
+  @@index([tenantId, evaluatorId, submittedAt])
+  @@map("attempts")
+}
+
+model IdempotencyRecord {
+  id                 String   @id @default(uuid()) @db.Uuid
+  tenantId           String   @db.Uuid
+  key                String   @db.VarChar(255)
+  requestFingerprint String   @db.Char(64)
+  responseStatus     Int
+  responseBody       Json
+  createdAt          DateTime @default(now()) @db.Timestamptz(3)
+  expiresAt          DateTime @db.Timestamptz(3)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
