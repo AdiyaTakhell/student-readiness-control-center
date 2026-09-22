@@ -1,6 +1,7 @@
-import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../src/generated/prisma/client.js";
-import { env } from "../src/config/env.js";
+import argon2 from "argon2";
+import {PrismaPg} from "@prisma/adapter-pg";
+import {PrismaClient} from "../src/generated/prisma/client.js";
+import {env} from "../src/config/env.js";
 
 const prisma = new PrismaClient({
     adapter: new PrismaPg({
@@ -56,11 +57,13 @@ async function main() {
         },
         update: {
             name: "Acme Academy",
+            slug: "acme",
             status: "ACTIVE"
         },
         create: {
             id: "00000000-0000-0000-0000-000000000001",
             name: "Acme Academy",
+            slug: "acme",
             status: "ACTIVE"
         }
     });
@@ -71,17 +74,18 @@ async function main() {
         },
         update: {
             name: "Beta Academy",
+            slug: "beta",
             status: "ACTIVE"
         },
         create: {
             id: "00000000-0000-0000-0000-000000000002",
             name: "Beta Academy",
+            slug: "beta",
             status: "ACTIVE"
         }
     });
 
-    const developmentPasswordHash = "development-only-not-a-real-password-hash";
-
+    const developmentPasswordHash = await argon2.hash("Password123!");
     const adminA = await prisma.user.upsert({
         where: {
             id: "00000000-0000-0000-0000-000000000011"
