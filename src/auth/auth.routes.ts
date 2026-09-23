@@ -1,6 +1,6 @@
-import type {FastifyInstance} from "fastify";
-import {z} from "zod";
-import {login} from "./auth.service.js";
+import type { FastifyInstance } from "fastify";
+import { z } from "zod";
+import { login } from "./auth.service.js";
 
 const loginSchema = z.object({
     tenantSlug: z.string().trim().min(1).max(80),
@@ -14,14 +14,19 @@ export default async function authRoutes(
     app.post(
         "/api/auth/login",
         async (request, reply) => {
-            const validation = loginSchema.safeParse(request.body);
+            const validation = loginSchema.safeParse(
+                request.body
+            );
 
             if (!validation.success) {
                 return reply.code(400).send({
                     error: {
                         code: "VALIDATION_ERROR",
                         message: "Invalid request body",
-                        fields: validation.error.flatten().fieldErrors
+                        requestId: request.id,
+                        fields:
+                        validation.error.flatten()
+                            .fieldErrors
                     }
                 });
             }
@@ -42,7 +47,8 @@ export default async function authRoutes(
                     return reply.code(401).send({
                         error: {
                             code: "INVALID_CREDENTIALS",
-                            message: "Invalid credentials"
+                            message: "Invalid credentials",
+                            requestId: request.id
                         }
                     });
                 }

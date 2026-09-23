@@ -10,7 +10,8 @@ export async function authenticate(
         await reply.code(401).send({
             error: {
                 code: "UNAUTHENTICATED",
-                message: "Authentication required"
+                message: "Authentication required",
+                requestId: request.id
             }
         });
     }

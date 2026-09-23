@@ -139,3 +139,19 @@ model IdempotencyRecord {
   @@index([expiresAt])
   @@map("idempotency_records")
 }
+model OutboxEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  eventType   String   @db.VarChar(100)
+  tenantId    String   @db.Uuid
+  studentId   String?  @db.Uuid
+  attemptId   String?  @db.Uuid
+  requestId   String   @db.VarChar(100)
+  occurredAt  DateTime @default(now()) @db.Timestamptz(3)
+  payload     Json
+  publishedAt DateTime? @db.Timestamptz(3)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+
+  @@index([publishedAt, createdAt])
+  @@index([tenantId, studentId, occurredAt])
+  @@map("outbox_events")
+}
