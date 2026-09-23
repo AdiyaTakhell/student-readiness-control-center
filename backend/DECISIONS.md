@@ -1,4 +1,3 @@
-﻿
 # Decisions
 
 ## 1. PostgreSQL is the source of truth; MongoDB stores operational events
@@ -124,4 +123,3 @@ The current implementation uses the activity API and polling/refetching.
 
 This keeps the assessment implementation focused on correctness, security,
 idempotency, concurrency, and testability.
-

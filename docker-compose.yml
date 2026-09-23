@@ -1,0 +1,37 @@
+﻿version: '3.8'
+
+services:
+  postgres:
+    image: postgres:18.6
+    container_name: readiness-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: readiness
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d readiness"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mongo:
+    image: mongo:8.0.20
+    container_name: readiness-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: readiness
+      MONGO_INITDB_ROOT_USERNAME: app
+      MONGO_INITDB_ROOT_PASSWORD: app
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  postgres-data:
+  mongo-data:
